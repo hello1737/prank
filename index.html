@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>.</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background:#000;
+    width:100vw; height:100vh;
+    overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    cursor:none;
+    font-family:'Impact','Arial Black',sans-serif;
+  }
+
+  /* Fond pulsant */
+  .bg {
+    position:fixed; inset:0; z-index:0;
+    background:
+      radial-gradient(ellipse at 30% 40%, #ff0040 0%, transparent 55%),
+      radial-gradient(ellipse at 70% 60%, #ff6a00 0%, transparent 55%),
+      #0a0a0a;
+    animation: pulseBg 1.2s ease-in-out infinite alternate;
+  }
+  @keyframes pulseBg { from{opacity:.6} to{opacity:1} }
+
+  /* Coins emojis */
+  .corner {
+    position:fixed; z-index:10;
+    font-size:clamp(2.5rem,5vw,5rem);
+    animation:spin 2s linear infinite;
+    opacity:.7;
+    pointer-events:none;
+  }
+  .corner.tl{top:2vh;left:2vw}
+  .corner.tr{top:2vh;right:2vw;animation-direction:reverse}
+  .corner.bl{bottom:2vh;left:2vw}
+  .corner.br{bottom:2vh;right:2vw;animation-direction:reverse}
+  @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+  /* Zone média */
+  #media-wrap {
+    position:relative; z-index:2;
+    display:flex; align-items:center; justify-content:center;
+    max-width:80vw; max-height:80vh;
+    animation: popIn .4s cubic-bezier(.175,.885,.32,1.275);
+  }
+  @keyframes popIn {
+    from{transform:scale(0) rotate(-8deg);opacity:0}
+    to  {transform:scale(1) rotate(0);opacity:1}
+  }
+
+  /* Image */
+  #meme-img {
+    max-width:78vw; max-height:78vh;
+    object-fit:contain; border-radius:14px;
+    box-shadow:0 0 70px rgba(255,60,0,.9), 0 0 180px rgba(255,100,0,.4);
+    animation:bounce .7s ease-in-out infinite alternate;
+  }
+  @keyframes bounce {
+    from{transform:scale(1) rotate(-1deg)}
+    to  {transform:scale(1.04) rotate(1deg)}
+  }
+
+  /* Vidéo */
+  #meme-vid {
+    max-width:80vw; max-height:80vh;
+    border-radius:14px;
+    box-shadow:0 0 70px rgba(255,60,0,.9);
+    display:none;
+  }
+
+  /* Texte bas */
+  .caption {
+    position:fixed; bottom:4vh; left:50%;
+    transform:translateX(-50%);
+    z-index:5;
+    color:#fff;
+    font-size:clamp(1.4rem,3.5vw,3.2rem);
+    text-transform:uppercase; letter-spacing:.1em;
+    text-shadow:0 0 20px #ff3300, 3px 3px 0 #000;
+    animation:capPulse .5s ease-in-out infinite alternate;
+    white-space:nowrap;
+  }
+  @keyframes capPulse {
+    from{transform:translateX(-50%) scale(1)}
+    to  {transform:translateX(-50%) scale(1.07)}
+  }
+
+  /* Compteur discret */
+  #timer {
+    position:fixed; top:1vh; right:1vw;
+    color:rgba(255,255,255,.25);
+    font-size:.75rem; z-index:20;
+    font-family:monospace;
+  }
+
+  /* Flash de transition */
+  #flash {
+    position:fixed; inset:0; z-index:50;
+    background:#fff;
+    opacity:0; pointer-events:none;
+    transition:opacity .15s;
+  }
+  #flash.go { opacity:1; }
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="corner tl" id="c1">😂</div>
+<div class="corner tr" id="c2">💀</div>
+<div class="corner bl" id="c3">😭</div>
+<div class="corner br" id="c4">🔥</div>
+<div id="flash"></div>
+
+<div id="media-wrap">
+  <img  id="meme-img" src="" alt="">
+  <video id="meme-vid" autoplay muted loop playsinline></video>
+</div>
+
+<div class="caption" id="caption">😂</div>
+<div id="timer"></div>
+
+<script>
+// ─── Chargement du manifest ───────────────────────────────
+async function loadManifest() {
+  try {
+    const r = await fetch('manifest.json?t=' + Date.now());
+    return await r.json();
+  } catch(e) {
+    // Fallback si manifest introuvable
+    return {
+      interval_minutes: 2,
+      files: [
+        {type:'image', src:'media/meme1.jpg'},
+        {type:'image', src:'media/meme2.jpg'},
+        {type:'image', src:'media/meme3.jpg'}
+      ]
+    };
+  }
+}
+
+const img  = document.getElementById('meme-img');
+const vid  = document.getElementById('meme-vid');
+const cap  = document.getElementById('caption');
+const wrap = document.getElementById('media-wrap');
+const tmr  = document.getElementById('timer');
+const flash= document.getElementById('flash');
+
+const captions = [
+  '😂 BOOZLE FR FR 💀',
+  '😭 SKILL ISSUE 😭',
+  '💀 T\'AS PERDU 💀',
+  '🔥 C\'EST FINI 🔥',
+  '😂 OH NON 😂',
+  '💀 BRO... 💀'
+];
+
+const emojis = [
+  ['😂','💀','😭','🔥'],
+  ['🤣','💀','😱','🔥'],
+  ['😭','🗿','💀','😤'],
+  ['🍔','💀','😂','🎯']
+];
+
+let manifest = null;
+let current  = -1;
+let remaining = 0;
+
+function rand(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function setEmojis() {
+  const set = rand(emojis);
+  document.getElementById('c1').textContent = set[0];
+  document.getElementById('c2').textContent = set[1];
+  document.getElementById('c3').textContent = set[2];
+  document.getElementById('c4').textContent = set[3];
+}
+
+function showMedia(entry) {
+  // Flash blanc de transition
+  flash.classList.add('go');
+  setTimeout(() => flash.classList.remove('go'), 200);
+
+  // Restart animation pop
+  wrap.style.animation = 'none';
+  wrap.offsetHeight; // reflow
+  wrap.style.animation = 'popIn .4s cubic-bezier(.175,.885,.32,1.275)';
+
+  if (entry.type === 'video') {
+    img.style.display = 'none';
+    vid.style.display = 'block';
+    vid.src = entry.src + '?t=' + Date.now();
+    vid.load();
+    vid.play().catch(()=>{});
+  } else {
+    vid.style.display = 'none';
+    img.style.display = 'block';
+    img.src = entry.src + '?t=' + Date.now();
+  }
+
+  cap.textContent = entry.caption || rand(captions);
+  setEmojis();
+}
+
+function nextMedia() {
+  if (!manifest || !manifest.files.length) return;
+  let idx;
+  do { idx = Math.floor(Math.random() * manifest.files.length); }
+  while (idx === current && manifest.files.length > 1);
+  current = idx;
+  showMedia(manifest.files[idx]);
+  remaining = manifest.interval_minutes * 60;
+}
+
+// Compteur affiché
+function tick() {
+  if (remaining > 0) {
+    remaining--;
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    tmr.textContent = `⏱ ${m}:${String(s).padStart(2,'0')}`;
+  } else {
+    nextMedia();
+  }
+}
+
+// Wake lock
+if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
+
+// Init
+loadManifest().then(m => {
+  manifest = m;
+  nextMedia();
+  setInterval(tick, 1000);
+});
+</script>
+</body>
+</html>
