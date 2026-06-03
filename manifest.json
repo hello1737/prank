@@ -1,8 +1,0 @@
-{
-  "interval_minutes": 2,
-  "files": [
-    { "type": "image", "src": "media/meme1.jpg" },
-    { "type": "image", "src": "media/meme2.jpg" },
-    { "type": "image", "src": "media/meme3.jpg" }
-  ]
-}
